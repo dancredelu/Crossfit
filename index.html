@@ -1,0 +1,1074 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CrossFit Log">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f172a">
+<title>CrossFit Log · App</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230f172a'/%3E%3Ctext x='50' y='66' font-size='54' text-anchor='middle'%3E%F0%9F%8F%8B%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>try{ tailwind.config = { darkMode: 'class' }; }catch(e){ console.error('Tailwind no cargó (sin conexión al CDN).', e); }</script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f8fafc;-webkit-tap-highlight-color:transparent}
+  html.dark body{background:#020617}
+  input,select,button,textarea{font-size:16px}
+  .safe-b{padding-bottom:env(safe-area-inset-bottom,0px)}
+  .safe-t{padding-top:env(safe-area-inset-top,0px)}
+  .active-tab{background:#0f172a!important;color:#fff!important}
+  html.dark .active-tab{background:#7c3aed!important}
+  .typeactive{background:#7c3aed!important;color:#fff!important;border-color:#7c3aed!important}
+  .ai-review{background:#fef3c7!important;border-color:#f59e0b!important;box-shadow:0 0 0 2px rgba(245,158,11,.15)}
+  html.dark .ai-review{background:#3f2d0a!important;border-color:#f59e0b!important;color:#fde68a!important}
+  .ai-review-wrap{background:#fffbeb;border:2px solid #f59e0b}
+  html.dark .ai-review-wrap{background:#3f2d0a;border-color:#f59e0b;color:#fde68a}
+  .ai-badge{font-size:11px;font-weight:900;color:#92400e;background:#fde68a;padding:4px 8px;border-radius:999px}
+  .ai-ok{font-size:12px;color:#047857;background:#d1fae5;padding:8px 10px;border-radius:12px}
+  html.dark .ai-ok{background:#052e21;color:#6ee7b7}
+  .ai-error{font-size:12px;color:#b91c1c;background:#fee2e2;padding:8px 10px;border-radius:12px}
+  html.dark .ai-error{background:#3a0a0a;color:#fca5a5}
+  .pr-row{background:#ecfdf5}
+  html.dark .pr-row{background:#052e21}
+  .fadein{animation:fadein .18s ease-out}
+  @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  ::-webkit-scrollbar{height:6px;width:6px}
+  ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px}
+  html.dark ::-webkit-scrollbar-thumb{background:#334155}
+  @media print{@page{size:A4 landscape;margin:8mm}.noprint{display:none!important}}
+</style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-24 sm:pb-6 transition-colors">
+
+<header class="bg-slate-950 dark:bg-slate-900 text-white p-5 safe-t sticky top-0 z-30 shadow-lg">
+  <div class="max-w-6xl mx-auto flex items-start justify-between gap-3">
+    <div>
+      <div class="text-xs uppercase tracking-widest text-violet-300">🏋️ CrossFit Log</div>
+      <h1 class="text-2xl sm:text-3xl font-black">Diario de entrenamiento</h1>
+      <div id="user" class="text-sm text-slate-300 mt-1"></div>
+    </div>
+    <button id="themeToggle" type="button" class="noprint shrink-0 w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-lg" title="Cambiar tema">🌙</button>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto p-3">
+
+  <nav id="tabNav" class="noprint grid grid-cols-4 gap-2 fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-t border-slate-200 dark:border-slate-800 p-2 safe-b sm:static sm:bg-transparent sm:dark:bg-transparent sm:backdrop-blur-0 sm:border-0 sm:p-0 sm:mb-4">
+    <button data-tab="today" class="tab-btn active-tab rounded-2xl p-3 font-black text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">📅 Entreno</button>
+    <button data-tab="history" class="tab-btn rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 font-black text-sm">🔎 Historial</button>
+    <button data-tab="evo" class="tab-btn rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 font-black text-sm">📈 Evolución</button>
+    <button data-tab="settings" class="tab-btn rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 font-black text-sm">⚙️ Datos</button>
+  </nav>
+
+  <!-- TODAY -->
+  <section id="view-today" class="mt-1">
+    <div class="bg-white dark:bg-slate-900 dark:border-slate-800 rounded-3xl p-4 border">
+      <div class="flex gap-2">
+        <button id="dayPrev" class="w-12 rounded-2xl bg-slate-100 dark:bg-slate-800">◀</button>
+        <input id="date" type="date" class="h-12 flex-1 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl text-center font-black">
+        <button id="dayNext" class="w-12 rounded-2xl bg-slate-100 dark:bg-slate-800">▶</button>
+      </div>
+      <div id="pretty" class="text-center text-sm text-slate-500 dark:text-slate-400 mt-2"></div>
+      <input id="wodName" placeholder="Nombre / referencia del WOD" class="mt-3 w-full h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-4">
+      <input id="wodNotes" placeholder="Notas generales" class="mt-2 w-full h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-4">
+      <div class="noprint grid grid-cols-2 gap-2 mt-3">
+        <button id="btnDuplicatePrev" class="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 font-black text-sm">📆 Duplicar día anterior</button>
+        <button id="btnUseTemplate" class="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 font-black text-sm">📋 Usar plantilla</button>
+      </div>
+    </div>
+
+    <div class="noprint mt-4 bg-gradient-to-br from-violet-50 to-amber-50 dark:from-violet-950 dark:to-amber-950/40 rounded-3xl p-4 border border-violet-200 dark:border-violet-900">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="font-black text-lg">📸 Importar pizarra del coach con IA</div>
+          <div class="text-sm text-slate-600 dark:text-slate-400 mt-1">Haz una foto o elige una imagen. La IA preparará el entreno y marcará en amarillo lo que no pueda leer con suficiente seguridad.</div>
+        </div>
+        <span class="ai-badge shrink-0">Revisión humana</span>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-2 mt-3">
+        <label class="p-4 rounded-2xl bg-violet-700 text-white text-center font-black cursor-pointer">📷 Cargar foto<input id="boardPhoto" type="file" accept="image/*" capture="environment" class="hidden"></label>
+        <button id="aiAnalyzeBtn" class="p-4 rounded-2xl bg-slate-900 dark:bg-violet-700 text-white font-black disabled:opacity-40" disabled>✨ Generar entreno</button>
+      </div>
+      <div id="aiPreviewWrap" class="hidden mt-3"><img id="aiPreview" alt="Vista previa de la pizarra" class="w-full max-h-80 object-contain rounded-2xl border dark:border-slate-700 bg-white"></div>
+      <div id="aiStatus" class="mt-3"></div>
+    </div>
+
+    <div id="blocks" class="mt-4"></div>
+    <button id="btnAddBlock" class="noprint mt-3 w-full p-4 rounded-3xl border-2 border-dashed border-violet-300 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 font-black text-violet-800 dark:text-violet-300">➕ Añadir bloque</button>
+    <button id="btnFinish" class="noprint mt-3 w-full p-4 rounded-3xl bg-emerald-600 text-white font-black shadow-lg">💾 Guardar y cerrar entrenamiento</button>
+    <p class="noprint text-center text-xs text-slate-400 mt-2">Guarda este día y prepara automáticamente el siguiente día en blanco.</p>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="view-history" class="hidden mt-1 bg-white dark:bg-slate-900 dark:border-slate-800 rounded-3xl p-4 border">
+    <h2 class="text-2xl font-black">🔎 Buscar entrenos</h2>
+    <input id="hQuery" placeholder="Buscar por nombre o notas..." class="mt-3 w-full h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-4">
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
+      <input id="hFrom" type="date" class="h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-2">
+      <input id="hTo" type="date" class="h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-2">
+      <select id="hExercise" class="h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-2"></select>
+      <select id="hType" class="h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-2"><option value="">Todos los tipos</option></select>
+    </div>
+    <div class="grid sm:grid-cols-2 gap-2 mt-2">
+      <select id="hRating" class="h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-2"><option value="">Valoración mínima</option><option>10</option><option>9</option><option>8</option><option>7</option><option>6</option><option>5</option></select>
+      <label class="h-12 flex items-center gap-2 font-black px-2"><input id="hFavOnly" type="checkbox" class="w-5 h-5 accent-amber-500">⭐ Solo favoritos</label>
+    </div>
+    <div class="grid sm:grid-cols-2 gap-2 mt-3">
+      <button id="btnExportFilteredXlsx" class="p-3 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-black text-sm">📊 Excel de estos resultados</button>
+      <button id="btnExportFilteredPdf" class="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 font-black text-sm">📄 PDF de estos resultados</button>
+    </div>
+    <div id="results" class="mt-4 space-y-2"></div>
+  </section>
+
+  <!-- EVOLUTION -->
+  <section id="view-evo" class="hidden mt-1 space-y-4">
+    <div id="statsRow" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+    <div class="bg-white dark:bg-slate-900 dark:border-slate-800 rounded-3xl p-4 border">
+      <h2 class="text-2xl font-black">📈 Evolución de fuerza / carga</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Se incluye cualquier bloque (fuerza, EMOM, AMRAP...) donde hayas anotado peso para el ejercicio.</p>
+      <select id="evoExercise" class="mt-3 h-12 w-full border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-3"></select>
+      <div class="h-72 mt-4 relative"><canvas id="chart"></canvas><div id="chartFallback" class="hidden h-full flex items-center justify-center text-sm text-slate-400 text-center px-4">No se pudo cargar el gráfico (sin conexión). La tabla de abajo sigue disponible.</div></div>
+      <div id="evoTable" class="mt-3 overflow-x-auto"></div>
+    </div>
+    <div class="bg-white dark:bg-slate-900 dark:border-slate-800 rounded-3xl p-4 border">
+      <h2 class="text-xl font-black">🔁 Evolución de un WOD por nombre</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Compara resultados de un mismo WOD repetido (ej. "Fran", "Murph") a lo largo del tiempo.</p>
+      <select id="wodSelect" class="mt-3 h-12 w-full border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-3"><option value="">Selecciona un WOD con nombre repetido...</option></select>
+      <div id="wodTable" class="mt-3 overflow-x-auto"></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="view-settings" class="hidden mt-1 bg-white dark:bg-slate-900 dark:border-slate-800 rounded-3xl p-4 border space-y-5">
+    <h2 class="text-2xl font-black">⚙️ Datos y personalización</h2>
+
+    <div>
+      <div class="font-black">👤 Perfil</div>
+      <input id="profileName" placeholder="Tu nombre" class="mt-2 w-full h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-4">
+    </div>
+
+    <div class="rounded-2xl border dark:border-slate-700 p-4">
+      <div class="font-black">🏷️ Tipos de bloque personalizados</div>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Además de los tipos de fábrica (FUERZA, EMOM, AMRAP...) puedes crear los tuyos (ej. "SUPERSET", "EMOM DOBLE").</p>
+      <div class="flex gap-2 mt-3">
+        <input id="newTypeName" placeholder="Nombre del nuevo tipo" class="h-11 flex-1 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-3">
+        <button id="btnAddType" class="h-11 px-4 rounded-2xl bg-violet-700 text-white font-black">➕</button>
+      </div>
+      <div id="typeList" class="mt-3 flex flex-wrap gap-2"></div>
+    </div>
+
+    <div class="rounded-2xl border dark:border-slate-700 p-4">
+      <div class="font-black">💪 Ejercicios personalizados</div>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Añade movimientos que no estén en el catálogo, en la categoría que quieras (puedes crear categorías nuevas).</p>
+      <div class="grid sm:grid-cols-[1fr_1fr_auto] gap-2 mt-3">
+        <input id="newExCategory" list="categoryList" placeholder="Categoría (ej. Barra)" class="h-11 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-3">
+        <datalist id="categoryList"></datalist>
+        <input id="newExName" placeholder="Nombre del ejercicio" class="h-11 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-3">
+        <button id="btnAddExercise" class="h-11 px-4 rounded-2xl bg-violet-700 text-white font-black">➕</button>
+      </div>
+      <div id="exerciseList" class="mt-3 space-y-1 max-h-56 overflow-y-auto"></div>
+    </div>
+
+    <div class="rounded-2xl border dark:border-slate-700 p-4">
+      <div class="font-black">📋 Plantillas de entreno</div>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Se crean desde la pestaña Entreno ("Guardar bloque como plantilla" o "Guardar día como plantilla").</p>
+      <button id="btnSaveDayTemplate" class="mt-3 w-full sm:w-auto p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 font-black text-sm">💾 Guardar día actual como plantilla</button>
+      <div id="templateList" class="mt-3 space-y-1"></div>
+    </div>
+
+    <div class="rounded-2xl border bg-slate-50 dark:bg-slate-800/50 dark:border-slate-700 p-4">
+      <div class="font-black">☁️ Cuenta y sincronización</div>
+      <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Conecta Supabase para usar la misma cuenta y los mismos entrenos en iPhone, Android, PC y Mac. La clave pública de Supabase puede estar en el navegador siempre que RLS esté activado.</p>
+      <div id="cloudStatus" class="mt-3 text-sm"></div>
+      <div class="grid sm:grid-cols-2 gap-2 mt-3">
+        <input id="supabaseUrl" placeholder="https://TU-PROYECTO.supabase.co" class="h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-3">
+        <input id="supabaseAnonKey" type="password" autocomplete="off" placeholder="Publishable / anon key de Supabase" class="h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-3">
+      </div>
+      <div class="grid sm:grid-cols-2 gap-2 mt-2">
+        <input id="authEmail" type="email" autocomplete="email" placeholder="Email" class="h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-3">
+        <input id="authPassword" type="password" autocomplete="current-password" placeholder="Contraseña" class="h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-3">
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+        <button type="button" id="btnSaveCloud" class="h-12 rounded-2xl bg-slate-900 dark:bg-violet-700 text-white font-black text-sm">Guardar config.</button>
+        <button type="button" id="btnSignUp" class="h-12 rounded-2xl bg-violet-100 dark:bg-violet-950 text-violet-800 dark:text-violet-300 font-black text-sm">Crear cuenta</button>
+        <button type="button" id="btnSignIn" class="h-12 rounded-2xl bg-emerald-600 text-white font-black text-sm">Entrar</button>
+        <button type="button" id="btnSignOut" class="h-12 rounded-2xl bg-slate-200 dark:bg-slate-700 font-black text-sm">Salir</button>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-2 mt-2">
+        <button type="button" id="btnSyncNow" class="h-12 rounded-2xl bg-sky-600 text-white font-black text-sm">🔄 Sincronizar ahora</button>
+        <button type="button" id="btnUploadLocal" class="h-12 rounded-2xl bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 font-black text-sm">⬆️ Subir datos locales</button>
+      </div>
+    </div>
+
+    <div class="rounded-2xl border bg-slate-50 dark:bg-slate-800/50 dark:border-slate-700 p-4">
+      <div class="font-black">🤖 IA segura para la pizarra</div>
+      <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">La app ya no guarda la API key de Gemini. La foto se envía a tu Cloudflare Worker y la clave queda protegida como Secret.</p>
+      <input id="aiWorkerUrl" placeholder="https://crossfit-ai.tu-subdominio.workers.dev" class="mt-3 w-full h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-4">
+      <button type="button" id="btnSaveWorker" class="mt-2 w-full sm:w-auto h-12 px-5 rounded-2xl bg-violet-700 text-white font-black">Guardar URL del Worker</button>
+      <div class="text-xs text-emerald-700 dark:text-emerald-400 mt-2"><b>Seguro:</b> Gemini se usa desde el Worker; la clave secreta nunca se incluye en GitHub ni en el navegador.</div>
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-2">
+      <button id="btnXlsx" class="p-4 rounded-2xl bg-emerald-600 text-white font-black">📊 Exportar todo a Excel</button>
+      <button id="btnPdf" class="p-4 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white font-black">📄 PDF del día actual</button>
+      <button id="btnBackup" class="p-4 rounded-2xl bg-sky-600 text-white font-black">💾 Copia de seguridad</button>
+      <label class="p-4 rounded-2xl bg-sky-100 dark:bg-sky-950 text-sky-900 dark:text-sky-200 text-center font-black cursor-pointer">📥 Restaurar copia<input id="restoreInput" type="file" accept=".json" class="hidden"></label>
+    </div>
+  </section>
+
+</main>
+
+<script>
+'use strict';
+/* ==================== CONSTANTES Y ESTADO ==================== */
+const STORAGE_KEY = 'crossfit_log_v2';
+const LEGACY_KEY = 'crossfit_log_v1';
+const CLOUD_KEY = 'crossfit_cloud_settings_v1';
+const AI_WORKER_KEY = 'crossfit_ai_worker_v1';
+const THEME_KEY = 'crossfit_theme_v1';
+
+const BASE_TYPES = ['FUERZA','EMOM','AMRAP','COMPLEX','FOR TIME','TABATA','METCON','SKILL / TÉCNICA','OTRO'];
+
+const BASE_EXERCISES = [['Barra','Back Squat'],['Barra','Front Squat'],['Barra','Overhead Squat'],['Barra','Deadlift'],['Barra','Sumo Deadlift'],['Barra','Shoulder Press'],['Barra','Push Press'],['Barra','Push Jerk'],['Barra','Split Jerk'],['Barra','Clean'],['Barra','Power Clean'],['Barra','Hang Clean'],['Barra','Squat Clean'],['Barra','Clean & Jerk'],['Barra','Snatch'],['Barra','Power Snatch'],['Barra','Hang Snatch'],['Barra','Muscle Snatch'],['Barra','Thruster'],['Barra','Bench Press'],['Barra','Barbell Row'],['Barra','Walking Lunge'],['Mancuernas','DB Clean'],['Mancuernas','DB Snatch'],['Mancuernas','DB Push Press'],['Mancuernas','DB Push Jerk'],['Mancuernas','DB Thruster'],['Mancuernas','DB Deadlift'],['Mancuernas','DB Farmer Carry'],['Mancuernas','DB Turkish Get-up'],['Mancuernas','DB Row'],['Mancuernas','Devil Press'],['Kettlebell','KB Swing'],['Kettlebell','KB Snatch'],['Kettlebell','KB Clean'],['Kettlebell','KB Goblet Squat'],['Gimnasia','Pull-up'],['Gimnasia','Strict Pull-up'],['Gimnasia','Kipping Pull-up'],['Gimnasia','Chest-to-Bar Pull-up'],['Gimnasia','Bar Muscle-up'],['Gimnasia','Ring Muscle-up'],['Gimnasia','Ring Dip'],['Gimnasia','Ring Row'],['Gimnasia','Push-up'],['Gimnasia','Handstand Push-up'],['Gimnasia','Handstand Walk'],['Gimnasia','Pistol Squat'],['Gimnasia','Air Squat'],['Gimnasia','Toes-to-Bar'],['Gimnasia','Knees-to-Elbows'],['Gimnasia','L-sit'],['Gimnasia','GHD Sit-up'],['Gimnasia','Burpee'],['Gimnasia','Wall Walk'],['Cíclico','Row'],['Cíclico','SkiErg'],['Cíclico','Bike / Assault Bike'],['Cíclico','Run'],['Cuerda','Double-under'],['Cuerda','Single-under'],['Plyo','Box Jump'],['Plyo','Box Step-up'],['Implementos','Wall-ball Shot'],['Implementos','Medicine-ball Clean'],['Implementos','Sled Push'],['Implementos','Farmer Carry']];
+
+const $ = (id) => document.getElementById(id);
+const esc = (x) => String(x ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+const todayISO = () => new Date().toLocaleDateString('en-CA');
+
+let state = null;
+let currentDate = todayISO();
+let chartInstance = null;
+let aiPhotoDataUrl = null;
+let pendingTemplateAction = null; // 'day' template save uses this indirectly, not required elsewhere
+let supabaseClient = null;
+let cloudUser = null;
+let cloudSaveTimer = null;
+let cloudBusy = false;
+let cloudSettings = { url:'', anonKey:'' };
+let aiWorkerUrl = '';
+const CLOUD_TABLE = 'app_state';
+
+/* ==================== ESTADO: CARGA / MIGRACIÓN / GUARDADO ==================== */
+function defaultState(){
+  return { profile: { name: '' }, customTypes: [], customExercises: [], templates: [], workouts: {} };
+}
+
+function blankItem(overrides){
+  return Object.assign({ id: uid(), exercise: BASE_EXERCISES[0][1], reps: '', sets: '', weight: '', feel: '', notes: '' }, overrides || {});
+}
+
+function blankBlock(overrides){
+  return Object.assign({ id: uid(), type: 'AMRAP', title: '', cut: '', finish: '', rating: '', fav: false, items: [blankItem()] }, overrides || {});
+}
+
+function normalizeState(raw){
+  const st = defaultState();
+  if (raw.profile && typeof raw.profile === 'object') st.profile.name = raw.profile.name || '';
+  if (Array.isArray(raw.customTypes)) st.customTypes = raw.customTypes.filter(t => typeof t === 'string');
+  if (Array.isArray(raw.customExercises)) st.customExercises = raw.customExercises.filter(e => Array.isArray(e) && e.length === 2);
+  if (Array.isArray(raw.templates)) st.templates = raw.templates;
+  if (raw.workouts && typeof raw.workouts === 'object'){
+    Object.entries(raw.workouts).forEach(([date, w]) => {
+      if (!w) return;
+      st.workouts[date] = {
+        name: w.name || '', notes: w.notes || '', _review: w._review || null,
+        blocks: Array.isArray(w.blocks) ? w.blocks.map(b => blankBlock({
+          id: b.id != null ? String(b.id) : uid(),
+          type: b.type || 'OTRO', title: b.title || '', cut: b.cut || '', finish: b.finish || '',
+          rating: b.rating || '', fav: !!b.fav, _review: b._review || null,
+          items: Array.isArray(b.items) && b.items.length ? b.items.map(it => blankItem({
+            id: it.id != null ? String(it.id) : uid(),
+            exercise: it.exercise || BASE_EXERCISES[0][1], reps: it.reps || '', sets: it.sets || '',
+            weight: it.weight || '', feel: it.feel || '', notes: it.notes || '', _review: it._review || null
+          })) : [blankItem()]
+        })) : []
+      };
+    });
+  }
+  return st;
+}
+
+function migrateLegacy(oldData){
+  const wrapped = { profile: oldData.profile, workouts: oldData.w, customTypes: [], customExercises: [], templates: [] };
+  const st = normalizeState(wrapped);
+  return st;
+}
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return normalizeState(parsed);
+    }
+  } catch (e) {
+    console.error('El estado guardado parecía dañado, se conserva una copia y se reinicia.', e);
+    try {
+      const broken = localStorage.getItem(STORAGE_KEY);
+      if (broken) localStorage.setItem(STORAGE_KEY + '_corrupto_' + Date.now(), broken);
+    } catch (e2) { /* almacenamiento no disponible */ }
+  }
+  try {
+    const legacyRaw = localStorage.getItem(LEGACY_KEY);
+    if (legacyRaw) {
+      const legacy = JSON.parse(legacyRaw);
+      if (legacy && legacy.w) {
+        const migrated = migrateLegacy(legacy);
+        saveState(migrated);
+        return migrated;
+      }
+    }
+  } catch (e) { console.error('No se pudo migrar la copia anterior (v1).', e); }
+  return defaultState();
+}
+
+function saveState(st){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(st || state)); }
+  catch (e) { alert('No se pudo guardar: el almacenamiento del navegador está lleno o bloqueado.'); }
+}
+const save = () => { saveState(state); scheduleCloudSave(); };
+
+/* ==================== NUBE: SUPABASE ==================== */
+function loadCloudSettings(){
+  try { cloudSettings = Object.assign(cloudSettings, JSON.parse(localStorage.getItem(CLOUD_KEY) || 'null') || {}); } catch(e) {}
+  try { aiWorkerUrl = localStorage.getItem(AI_WORKER_KEY) || ''; } catch(e) {}
+}
+function saveCloudSettings(){
+  cloudSettings.url = ($('supabaseUrl').value || '').trim().replace(/\/$/, '');
+  cloudSettings.anonKey = ($('supabaseAnonKey').value || '').trim();
+  try { localStorage.setItem(CLOUD_KEY, JSON.stringify(cloudSettings)); } catch(e) {}
+  initSupabaseClient(); renderCloudStatus('Configuración guardada.');
+}
+function saveWorkerUrl(){
+  aiWorkerUrl = ($('aiWorkerUrl').value || '').trim().replace(/\/$/, '');
+  try { localStorage.setItem(AI_WORKER_KEY, aiWorkerUrl); } catch(e) {}
+  renderCloudStatus('URL del Worker guardada.');
+}
+function initSupabaseClient(){
+  supabaseClient = null;
+  if (!cloudSettings.url || !cloudSettings.anonKey) return;
+  if (!window.supabase || !window.supabase.createClient) return;
+  try {
+    supabaseClient = window.supabase.createClient(cloudSettings.url, cloudSettings.anonKey, {
+      auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
+    });
+  } catch(e){ console.error(e); }
+}
+function hasLocalData(){
+  return Object.values(state?.workouts || {}).some(w => (w.blocks || []).length) || (state?.templates || []).length || (state?.customTypes || []).length || (state?.customExercises || []).length;
+}
+function renderCloudStatus(extra){
+  const el=$('cloudStatus'); if(!el) return;
+  let text=''; let cls='text-slate-500 dark:text-slate-400';
+  if (!supabaseClient) text='⚪ Supabase no configurado.';
+  else if (cloudUser) { text='🟢 Conectado como ' + esc(cloudUser.email || cloudUser.id); cls='text-emerald-700 dark:text-emerald-400 font-bold'; }
+  else text='🟡 Supabase configurado. Falta iniciar sesión.';
+  if (extra) text += ' ' + esc(extra);
+  el.className='mt-3 text-sm ' + cls; el.innerHTML=text;
+  const out=$('btnSignOut'); if(out) out.disabled=!cloudUser;
+  const sync=$('btnSyncNow'); if(sync) sync.disabled=!cloudUser;
+  const up=$('btnUploadLocal'); if(up) up.disabled=!cloudUser;
+}
+async function restoreSession(){
+  if (!supabaseClient) { renderCloudStatus(); return; }
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    cloudUser = data.session?.user || null;
+    renderCloudStatus();
+    supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+      cloudUser=session?.user || null; renderCloudStatus();
+    });
+    if (cloudUser) await syncFromCloud({initial:true});
+  } catch(e){ console.error(e); renderCloudStatus('No se pudo restaurar la sesión.'); }
+}
+async function signUp(){
+  saveCloudSettings(); if(!supabaseClient){ alert('Configura primero Supabase.'); return; }
+  const email=($('authEmail').value||'').trim(), password=$('authPassword').value||'';
+  if(!email || password.length<6){ alert('Escribe un email y una contraseña de al menos 6 caracteres.'); return; }
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  if(error){ alert('No se pudo crear la cuenta: '+error.message); return; }
+  cloudUser=data.user || null; renderCloudStatus('Cuenta creada. Revisa tu email si Supabase exige confirmación.');
+  if (data.session) await uploadLocalToCloud(true);
+}
+async function signIn(){
+  saveCloudSettings(); if(!supabaseClient){ alert('Configura primero Supabase.'); return; }
+  const email=($('authEmail').value||'').trim(), password=$('authPassword').value||'';
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if(error){ alert('No se pudo iniciar sesión: '+error.message); return; }
+  cloudUser=data.user; renderCloudStatus('Sesión iniciada.'); await syncFromCloud({initial:true});
+}
+async function signOut(){
+  if(supabaseClient) await supabaseClient.auth.signOut(); cloudUser=null; renderCloudStatus('Sesión cerrada.');
+}
+async function fetchCloudRow(){
+  if(!supabaseClient || !cloudUser) return null;
+  const { data, error } = await supabaseClient.from(CLOUD_TABLE).select('data,updated_at').eq('user_id', cloudUser.id).maybeSingle();
+  if(error) throw error; return data;
+}
+async function uploadLocalToCloud(force){
+  if(!supabaseClient || !cloudUser){ alert('Inicia sesión primero.'); return; }
+  if(!force && !confirm('¿Subir el estado actual de este dispositivo a la nube? Sustituirá la copia de tu cuenta.')) return;
+  cloudBusy=true; renderCloudStatus('Subiendo…');
+  try {
+    const { error } = await supabaseClient.from(CLOUD_TABLE).upsert({ user_id: cloudUser.id, data: state, updated_at: new Date().toISOString() }, { onConflict:'user_id' });
+    if(error) throw error; renderCloudStatus('Datos subidos.');
+  } catch(e){ console.error(e); alert('Error al subir a Supabase: '+e.message); renderCloudStatus('Error de sincronización.'); }
+  finally { cloudBusy=false; }
+}
+async function syncFromCloud(opts){
+  if(!supabaseClient || !cloudUser || cloudBusy) return;
+  cloudBusy=true; renderCloudStatus('Sincronizando…');
+  try {
+    const row=await fetchCloudRow();
+    if(!row){
+      if(hasLocalData()) await uploadLocalToCloud(true);
+      else renderCloudStatus('Cuenta vacía.');
+      return;
+    }
+    const cloudState=normalizeState(row.data || {});
+    const localHas=hasLocalData();
+    if(opts?.initial && localHas){
+      const localRaw=JSON.stringify(state), cloudRaw=JSON.stringify(cloudState);
+      if(localRaw!==cloudRaw){
+        const useCloud=confirm('Hay datos distintos en este dispositivo y en la nube.\n\nAceptar = usar la nube.\nCancelar = conservar este dispositivo y subirlo después manualmente.');
+        if(!useCloud){ renderCloudStatus('Se conservan los datos locales.'); return; }
+      }
+    }
+    state=cloudState; saveState(state); populateHistorySelectors(); renderToday(); renderCloudStatus('Actualizado desde la nube.');
+  } catch(e){ console.error(e); alert('Error al descargar de Supabase: '+e.message); renderCloudStatus('Error de sincronización.'); }
+  finally { cloudBusy=false; }
+}
+function scheduleCloudSave(){
+  if(!supabaseClient || !cloudUser || cloudBusy) return;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer=setTimeout(async()=>{ try{ await uploadLocalToCloud(true); }catch(e){} }, 1200);
+}
+
+/* ==================== LISTAS DINÁMICAS (tipos / ejercicios) ==================== */
+function getTypes(){ return BASE_TYPES.concat(state.customTypes); }
+function getExercises(){ return BASE_EXERCISES.concat(state.customExercises); }
+function getCategories(){ return [...new Set(getExercises().map(x => x[0]))].sort((a,b) => a.localeCompare(b,'es')); }
+
+function exerciseOptionsHTML(selected){
+  const all = getExercises();
+  const cats = getCategories();
+  return cats.map(cat => '<optgroup label="' + esc(cat) + '">' +
+    all.filter(x => x[0] === cat).sort((a,b) => a[1].localeCompare(b[1],'es'))
+       .map(x => '<option value="' + esc(x[1]) + '" ' + (x[1] === selected ? 'selected' : '') + '>' + esc(x[1]) + '</option>').join('') +
+    '</optgroup>').join('');
+}
+
+function getDay(date){
+  if (!state.workouts[date]) state.workouts[date] = { name: '', notes: '', blocks: [] };
+  return state.workouts[date];
+}
+
+/* ==================== NAVEGACIÓN ==================== */
+function switchView(view){
+  ['today','history','evo','settings'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active-tab', b.dataset.tab === view));
+  if (view === 'history') renderHistory();
+  if (view === 'evo') renderEvolution();
+  if (view === 'settings') renderSettings();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ==================== VISTA: ENTRENO DE HOY ==================== */
+function prettyDate(d){
+  return new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function reviewClass(obj, field){ return (obj && obj._review && obj._review[field]) ? ' ai-review' : ''; }
+function reviewBadge(obj){ return (obj && obj._review && Object.values(obj._review).some(Boolean)) ? '<span class="ai-badge ml-2">⚠️ Revisar IA</span>' : ''; }
+
+function renderToday(){
+  const w = getDay(currentDate);
+  $('date').value = currentDate;
+  $('pretty').textContent = prettyDate(currentDate);
+  $('wodName').value = w.name || '';
+  $('wodNotes').value = w.notes || '';
+  $('wodName').classList.toggle('ai-review', !!(w._review && w._review.name));
+  $('wodNotes').classList.toggle('ai-review', !!(w._review && w._review.notes));
+  $('blocks').innerHTML = w.blocks.map((b, i) => blockCardHTML(b, i)).join('');
+}
+
+function typePillsHTML(block){
+  return getTypes().map(t =>
+    '<button type="button" data-action="set-type" data-block="' + block.id + '" data-type="' + esc(t) + '" class="shrink-0 rounded-2xl border dark:border-slate-700 px-4 py-3 font-black text-sm ' + (block.type === t ? 'typeactive' : 'bg-white dark:bg-slate-800') + reviewClass(block,'type') + '">' + esc(t) + '</button>'
+  ).join('');
+}
+
+function itemRowHTML(block, item){
+  return '<div class="border border-slate-200 dark:border-slate-700 rounded-2xl p-3 mb-2 bg-slate-50/60 dark:bg-slate-800/40 fadein">' +
+    '<div class="grid grid-cols-2 sm:grid-cols-6 gap-2">' +
+      '<div class="col-span-2">' +
+        '<label class="text-[11px] font-black text-slate-500 dark:text-slate-400">Ejercicio</label>' +
+        '<div class="flex gap-1 mt-0.5">' +
+          '<select data-action="item-field" data-field="exercise" data-block="' + block.id + '" data-item="' + item.id + '" class="h-11 w-full border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-2 text-sm' + reviewClass(item,'exercise') + '">' + exerciseOptionsHTML(item.exercise) + '</select>' +
+          '<a target="_blank" rel="noopener" href="https://www.crossfit.com/crossfit-movements" class="w-11 h-11 shrink-0 rounded-xl bg-violet-100 dark:bg-violet-950 flex items-center justify-center">🎥</a>' +
+        '</div>' +
+      '</div>' +
+      '<div><label class="text-[11px] font-black text-slate-500 dark:text-slate-400">Reps</label><input inputmode="numeric" data-action="item-field" data-field="reps" data-block="' + block.id + '" data-item="' + item.id + '" value="' + esc(item.reps) + '" placeholder="Reps" class="mt-0.5 h-11 w-full border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-2 text-sm text-center' + reviewClass(item,'reps') + '"></div>' +
+      '<div><label class="text-[11px] font-black text-slate-500 dark:text-slate-400">Series</label><input data-action="item-field" data-field="sets" data-block="' + block.id + '" data-item="' + item.id + '" value="' + esc(item.sets) + '" placeholder="5x5" class="mt-0.5 h-11 w-full border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-2 text-sm text-center' + reviewClass(item,'sets') + '"></div>' +
+      '<div><label class="text-[11px] font-black text-slate-500 dark:text-slate-400">Peso</label><input data-action="item-field" data-field="weight" data-block="' + block.id + '" data-item="' + item.id + '" value="' + esc(item.weight) + '" placeholder="kg" class="mt-0.5 h-11 w-full border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-2 text-sm text-center' + reviewClass(item,'weight') + '"></div>' +
+      '<div><label class="text-[11px] font-black text-slate-500 dark:text-slate-400">Sensación</label><select data-action="item-field" data-field="feel" data-block="' + block.id + '" data-item="' + item.id + '" class="mt-0.5 h-11 w-full border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-2 text-sm"><option value="">—</option>' + [1,2,3,4,5,6,7,8,9,10].map(n => '<option value="' + n + '" ' + (String(item.feel) === String(n) ? 'selected' : '') + '>' + n + '/10</option>').join('') + '</select></div>' +
+    '</div>' +
+    '<input data-action="item-field" data-field="notes" data-block="' + block.id + '" data-item="' + item.id + '" value="' + esc(item.notes) + '" placeholder="Notas · variante · distancia · observaciones..." class="mt-2 h-10 w-full border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-3 text-sm' + reviewClass(item,'notes') + '">' +
+    (block.items.length > 1 ? '<button type="button" data-action="del-item" data-block="' + block.id + '" data-item="' + item.id + '" class="text-red-600 dark:text-red-400 text-xs font-black mt-2">🗑️ Eliminar ejercicio</button>' : '') +
+  '</div>';
+}
+
+function blockCardHTML(b, i){
+  return '<article class="bg-white dark:bg-slate-900 dark:border-slate-800 rounded-3xl p-4 border mb-4 shadow-sm fadein" data-block-card="' + b.id + '">' +
+    '<div class="flex justify-between items-start gap-2">' +
+      '<h2 class="font-black text-xl flex items-center flex-wrap gap-1">Bloque ' + (i+1) + reviewBadge(b) + '</h2>' +
+      '<div class="flex gap-1 shrink-0">' +
+        '<button type="button" data-action="save-block-template" data-block="' + b.id + '" title="Guardar como plantilla" class="noprint w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950 flex items-center justify-center">💾</button>' +
+        '<button type="button" data-action="del-block" data-block="' + b.id + '" title="Eliminar bloque" class="noprint w-9 h-9 rounded-xl bg-red-50 dark:bg-red-950 flex items-center justify-center">🗑️</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="flex gap-2 overflow-x-auto mt-3 pb-2">' + typePillsHTML(b) + '</div>' +
+    '<input data-action="block-field" data-field="title" data-block="' + b.id + '" value="' + esc(b.title) + '" placeholder="Nombre / objetivo" class="mt-3 w-full h-12 border dark:border-slate-700 dark:bg-slate-900 rounded-2xl px-4' + reviewClass(b,'title') + '">' +
+    '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl">' +
+      '<input data-action="block-field" data-field="cut" data-block="' + b.id + '" value="' + esc(b.cut) + '" placeholder="⏱️ Corte" class="h-11 border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-3 text-center' + reviewClass(b,'cut') + '">' +
+      '<input data-action="block-field" data-field="finish" data-block="' + b.id + '" value="' + esc(b.finish) + '" placeholder="🏁 Final / NT" class="h-11 border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-3 text-center' + reviewClass(b,'finish') + '">' +
+      '<select data-action="block-field" data-field="rating" data-block="' + b.id + '" class="h-11 border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-3"><option value="">⭐ WOD</option>' + [1,2,3,4,5,6,7,8,9,10].map(n => '<option value="' + n + '" ' + (String(b.rating) === String(n) ? 'selected' : '') + '>' + n + '</option>').join('') + '</select>' +
+      '<label class="h-11 flex items-center gap-2 font-black"><input type="checkbox" data-action="block-field" data-field="fav" data-block="' + b.id + '" ' + (b.fav ? 'checked' : '') + ' class="w-6 h-6 accent-amber-500">⭐ Favorito</label>' +
+    '</div>' +
+    '<div class="mt-4">' + b.items.map(it => itemRowHTML(b, it)).join('') + '</div>' +
+    '<button type="button" data-action="add-item" data-block="' + b.id + '" class="rounded-2xl bg-violet-100 dark:bg-violet-950 text-violet-800 dark:text-violet-300 px-4 py-3 font-black">➕ Añadir ejercicio</button>' +
+  '</article>';
+}
+
+function addBlock(){ getDay(currentDate).blocks.push(blankBlock()); save(); renderToday(); }
+function delBlock(id){
+  if (!confirm('¿Eliminar este bloque completo? No se puede deshacer.')) return;
+  const w = getDay(currentDate); w.blocks = w.blocks.filter(b => b.id !== id); save(); renderToday();
+}
+function addItem(blockId){
+  const b = getDay(currentDate).blocks.find(x => x.id === blockId); if (!b) return;
+  b.items.push(blankItem()); save(); renderToday();
+}
+function delItem(blockId, itemId){
+  const b = getDay(currentDate).blocks.find(x => x.id === blockId); if (!b) return;
+  if (!confirm('¿Eliminar este ejercicio del bloque?')) return;
+  b.items = b.items.filter(x => x.id !== itemId); save(); renderToday();
+}
+function updateBlockField(blockId, field, value){
+  const b = getDay(currentDate).blocks.find(x => x.id === blockId); if (!b) return;
+  b[field] = value;
+  if (b._review) b._review[field] = false;
+  save();
+}
+function updateItemField(blockId, itemId, field, value){
+  const b = getDay(currentDate).blocks.find(x => x.id === blockId); if (!b) return;
+  const it = b.items.find(x => x.id === itemId); if (!it) return;
+  it[field] = value;
+  if (it._review) it._review[field] = false;
+  save();
+}
+function updateMeta(){
+  const w = getDay(currentDate);
+  w.name = $('wodName').value; w.notes = $('wodNotes').value;
+  if (w._review){ w._review.name = false; w._review.notes = false; }
+  save();
+}
+
+function finishWorkout(){
+  updateMeta(); save();
+  const d = new Date(currentDate + 'T12:00:00'); d.setDate(d.getDate() + 1);
+  currentDate = d.toLocaleDateString('en-CA');
+  renderToday();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function changeDate(delta){
+  const d = new Date(currentDate + 'T12:00:00'); d.setDate(d.getDate() + delta);
+  currentDate = d.toLocaleDateString('en-CA'); renderToday();
+}
+function setDate(v){ currentDate = v; renderToday(); }
+
+/* ==================== PLANTILLAS Y DUPLICAR DÍA ==================== */
+function cloneBlockAsTemplate(block){
+  return {
+    id: uid(), type: block.type, title: block.title,
+    items: block.items.map(it => ({ id: uid(), exercise: it.exercise, reps: it.reps, sets: it.sets, weight: '', feel: '', notes: '' }))
+  };
+}
+function instantiateTemplateBlock(tb){
+  return blankBlock({
+    id: uid(), type: tb.type, title: tb.title, cut: '', finish: '', rating: '', fav: false,
+    items: tb.items.length ? tb.items.map(it => blankItem({ id: uid(), exercise: it.exercise, reps: it.reps, sets: it.sets })) : [blankItem()]
+  });
+}
+
+function saveBlockAsTemplate(blockId){
+  const b = getDay(currentDate).blocks.find(x => x.id === blockId); if (!b) return;
+  const name = prompt('Nombre para esta plantilla:', b.title || b.type);
+  if (!name || !name.trim()) return;
+  state.templates.push({ id: uid(), name: name.trim(), createdAt: todayISO(), blocks: [cloneBlockAsTemplate(b)] });
+  save();
+  alert('Plantilla guardada. Puedes gestionarla en ⚙️ Datos.');
+}
+
+function saveDayAsTemplate(){
+  const w = getDay(currentDate);
+  if (!w.blocks.length){ alert('El día actual no tiene bloques que guardar.'); return; }
+  const name = prompt('Nombre para esta plantilla de día:', w.name || 'Plantilla ' + currentDate);
+  if (!name || !name.trim()) return;
+  state.templates.push({ id: uid(), name: name.trim(), createdAt: todayISO(), blocks: w.blocks.map(cloneBlockAsTemplate) });
+  save();
+  renderSettings();
+  alert('Plantilla de día guardada.');
+}
+
+function deleteTemplate(id){
+  if (!confirm('¿Eliminar esta plantilla?')) return;
+  state.templates = state.templates.filter(t => t.id !== id); save(); renderSettings();
+}
+
+function applyTemplate(id){
+  const t = state.templates.find(x => x.id === id); if (!t) return;
+  const w = getDay(currentDate);
+  if (w.blocks.length && !confirm('Ya hay bloques hoy. ¿Añadir los de la plantilla "' + t.name + '" a continuación?')) return;
+  w.blocks = w.blocks.concat(t.blocks.map(instantiateTemplateBlock));
+  save(); renderToday(); switchView('today');
+}
+
+function promptUseTemplate(){
+  if (!state.templates.length){ alert('Todavía no has guardado ninguna plantilla. Puedes crear una desde el botón 💾 de un bloque, o "Guardar día actual como plantilla" en ⚙️ Datos.'); return; }
+  const list = state.templates.map((t, i) => (i+1) + '. ' + t.name + ' (' + t.blocks.length + ' bloque/s)').join('\n');
+  const choice = prompt('Escribe el número de la plantilla a usar:\n' + list);
+  if (!choice) return;
+  const idx = parseInt(choice, 10) - 1;
+  if (isNaN(idx) || !state.templates[idx]) { alert('Número no válido.'); return; }
+  applyTemplate(state.templates[idx].id);
+}
+
+function duplicatePreviousDay(){
+  const dates = Object.keys(state.workouts).filter(d => d < currentDate && state.workouts[d].blocks.length).sort();
+  const prevDate = dates[dates.length - 1];
+  if (!prevDate){ alert('No hay ningún día anterior con bloques registrados.'); return; }
+  const prevW = state.workouts[prevDate];
+  const w = getDay(currentDate);
+  if (w.blocks.length && !confirm('Ya hay bloques hoy. ¿Añadir la estructura del ' + prevDate + ' a continuación (sin los resultados)?')) return;
+  w.blocks = w.blocks.concat(prevW.blocks.map(b => instantiateTemplateBlock(cloneBlockAsTemplate(b))));
+  save(); renderToday();
+}
+
+/* ==================== HISTORIAL ==================== */
+function populateHistorySelectors(){
+  const names = [...new Set(getExercises().map(x => x[1]))].sort((a,b) => a.localeCompare(b,'es'));
+  $('hExercise').innerHTML = '<option value="">Todos los ejercicios</option>' + names.map(x => '<option>' + esc(x) + '</option>').join('');
+  $('hType').innerHTML = '<option value="">Todos los tipos</option>' + getTypes().map(t => '<option>' + esc(t) + '</option>').join('');
+  $('evoExercise').innerHTML = names.map(x => '<option>' + esc(x) + '</option>').join('');
+}
+
+function matchesFilters(date, w){
+  const q = $('hQuery').value.trim().toLowerCase();
+  const f1 = $('hFrom').value, f2 = $('hTo').value;
+  const fx = $('hExercise').value, ft = $('hType').value, fr = $('hRating').value, favOnly = $('hFavOnly').checked;
+  if (f1 && date < f1) return false;
+  if (f2 && date > f2) return false;
+  if (q && !((w.name || '').toLowerCase().includes(q) || (w.notes || '').toLowerCase().includes(q))) return false;
+  if (fx && !w.blocks.some(b => b.items.some(i => i.exercise === fx))) return false;
+  if (ft && !w.blocks.some(b => b.type === ft)) return false;
+  if (fr && !w.blocks.some(b => +b.rating >= +fr)) return false;
+  if (favOnly && !w.blocks.some(b => b.fav)) return false;
+  return true;
+}
+
+function filteredWorkouts(){
+  return Object.entries(state.workouts).filter(([d, w]) => w.blocks.length && matchesFilters(d, w)).sort((a,b) => b[0].localeCompare(a[0]));
+}
+
+function renderHistory(){
+  const list = filteredWorkouts();
+  $('results').innerHTML = list.map(([d, w]) =>
+    '<div class="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border dark:border-slate-700 flex items-start justify-between gap-2">' +
+      '<button type="button" data-action="open-day" data-date="' + d + '" class="text-left flex-1">' +
+        '<b>' + esc(w.name || 'Entrenamiento') + (w.blocks.some(b=>b.fav) ? ' ⭐' : '') + '</b>' +
+        '<div class="text-sm text-slate-500 dark:text-slate-400">' + d + ' · ' + w.blocks.length + ' bloque(s)</div>' +
+        '<div class="text-xs mt-1 text-slate-600 dark:text-slate-400">' + esc([...new Set(w.blocks.flatMap(b => b.items.map(i => i.exercise)))].join(' · ')) + '</div>' +
+      '</button>' +
+      '<button type="button" data-action="del-day" data-date="' + d + '" title="Eliminar día" class="shrink-0 w-9 h-9 rounded-xl bg-red-50 dark:bg-red-950 flex items-center justify-center">🗑️</button>' +
+    '</div>'
+  ).join('') || '<div class="text-center text-slate-400 py-8">Sin resultados</div>';
+}
+
+function openDay(date){ currentDate = date; switchView('today'); }
+function deleteDay(date){
+  if (!confirm('¿Eliminar por completo el entreno del ' + date + '? Esta acción no se puede deshacer.')) return;
+  delete state.workouts[date]; save(); renderHistory();
+}
+
+/* ==================== EVOLUCIÓN Y ESTADÍSTICAS ==================== */
+function computeStats(){
+  const dates = Object.keys(state.workouts).filter(d => state.workouts[d].blocks.length).sort();
+  const total = dates.length;
+  const now = new Date(); now.setHours(12,0,0,0);
+  const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 6);
+  const weekAgoISO = weekAgo.toLocaleDateString('en-CA'); const nowISO = now.toLocaleDateString('en-CA');
+  const thisWeek = dates.filter(d => d >= weekAgoISO && d <= nowISO).length;
+  const freq = {};
+  dates.forEach(d => state.workouts[d].blocks.forEach(b => b.items.forEach(i => { if (i.exercise) freq[i.exercise] = (freq[i.exercise] || 0) + 1; })));
+  const top = Object.entries(freq).sort((a,b) => b[1]-a[1])[0];
+  let streak = 0; let cursor = new Date(now);
+  while (dates.includes(cursor.toLocaleDateString('en-CA'))) { streak++; cursor.setDate(cursor.getDate() - 1); }
+  return { total, thisWeek, topExercise: top ? top[0] : '—', streak };
+}
+
+function statCardHTML(label, value){
+  return '<div class="bg-white dark:bg-slate-900 dark:border-slate-800 border rounded-2xl p-3 text-center"><div class="text-2xl font-black">' + esc(value) + '</div><div class="text-xs text-slate-500 dark:text-slate-400 mt-1">' + esc(label) + '</div></div>';
+}
+
+function renderStats(){
+  const s = computeStats();
+  $('statsRow').innerHTML = statCardHTML('Entrenos totales', s.total) + statCardHTML('Esta semana', s.thisWeek) + statCardHTML('Racha de días', s.streak) + statCardHTML('Más trabajado', s.topExercise);
+}
+
+function computeExerciseHistory(exerciseName){
+  const rows = [];
+  Object.entries(state.workouts).sort((a,b) => a[0].localeCompare(b[0])).forEach(([date, w]) => {
+    (w.blocks || []).forEach(b => (b.items || []).forEach(it => {
+      if (it.exercise === exerciseName && it.weight !== '' && it.weight != null && !isNaN(+it.weight)) {
+        rows.push({ date, weight: +it.weight, sets: it.sets, type: b.type });
+      }
+    }));
+  });
+  let max = -Infinity;
+  rows.forEach(r => { r.isPR = r.weight > max; if (r.isPR) max = r.weight; });
+  return rows;
+}
+
+function renderEvolution(){
+  renderStats();
+  const ex = $('evoExercise').value || $('evoExercise').options[0]?.value;
+  if (!ex) return;
+  const rows = computeExerciseHistory(ex);
+  try {
+    if (typeof Chart === 'undefined') throw new Error('Chart.js no está disponible (sin conexión al CDN)');
+    $('chart').classList.remove('hidden'); $('chartFallback').classList.add('hidden');
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart($('chart'), {
+      type: 'line',
+      data: { labels: rows.map(r => r.date), datasets: [{ label: ex + ' · kg', data: rows.map(r => r.weight), tension: .25, borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,.15)', fill: true }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+  } catch (e) {
+    console.error('No se pudo dibujar el gráfico de evolución.', e);
+    $('chart').classList.add('hidden'); $('chartFallback').classList.remove('hidden');
+  }
+  $('evoTable').innerHTML = rows.length ? '<table class="w-full text-sm"><tr class="bg-slate-50 dark:bg-slate-800"><th class="p-2 text-left">Fecha</th><th class="p-2">Peso</th><th class="p-2">Series</th><th class="p-2">Tipo</th></tr>' +
+    rows.slice().reverse().map(r => '<tr class="border-t dark:border-slate-800' + (r.isPR ? ' pr-row' : '') + '"><td class="p-2">' + r.date + (r.isPR ? ' 🏆' : '') + '</td><td class="p-2 text-center font-black">' + r.weight + ' kg</td><td class="p-2 text-center">' + esc(r.sets) + '</td><td class="p-2 text-center text-xs">' + esc(r.type) + '</td></tr>').join('') +
+    '</table>' : '<div class="text-center text-slate-400 py-6">Sin registros de peso todavía para este ejercicio.</div>';
+
+  const wodNames = [...new Set(Object.values(state.workouts).flatMap(w => (w.blocks||[]).map(b => (b.title||'').trim()).filter(Boolean)))].sort((a,b) => a.localeCompare(b,'es'));
+  const wodSelectedBefore = $('wodSelect').value;
+  $('wodSelect').innerHTML = '<option value="">Selecciona un WOD con nombre repetido...</option>' + wodNames.map(n => '<option>' + esc(n) + '</option>').join('');
+  if (wodNames.includes(wodSelectedBefore)) $('wodSelect').value = wodSelectedBefore;
+  renderWodTable($('wodSelect').value);
+}
+
+function renderWodTable(title){
+  if (!title){ $('wodTable').innerHTML = ''; return; }
+  const rows = [];
+  Object.entries(state.workouts).forEach(([date, w]) => (w.blocks||[]).forEach(b => {
+    if ((b.title||'').trim().toLowerCase() === title.trim().toLowerCase()) rows.push({ date, type: b.type, cut: b.cut, finish: b.finish, rating: b.rating });
+  }));
+  rows.sort((a,b) => a.date.localeCompare(b.date));
+  $('wodTable').innerHTML = rows.length ? '<table class="w-full text-sm"><tr class="bg-slate-50 dark:bg-slate-800"><th class="p-2 text-left">Fecha</th><th class="p-2">Tipo</th><th class="p-2">Corte</th><th class="p-2">Final</th><th class="p-2">⭐</th></tr>' +
+    rows.map(r => '<tr class="border-t dark:border-slate-800"><td class="p-2">' + r.date + '</td><td class="p-2 text-center text-xs">' + esc(r.type) + '</td><td class="p-2 text-center">' + esc(r.cut||'—') + '</td><td class="p-2 text-center">' + esc(r.finish||'—') + '</td><td class="p-2 text-center">' + esc(r.rating||'—') + '</td></tr>').join('') +
+    '</table>' : '<div class="text-center text-slate-400 py-4">Solo se ha registrado una vez.</div>';
+}
+
+/* ==================== AJUSTES ==================== */
+function renderSettings(){
+  $('profileName').value = state.profile.name || '';
+  $('supabaseUrl').value = cloudSettings.url || '';
+  $('supabaseAnonKey').value = cloudSettings.anonKey || '';
+  $('aiWorkerUrl').value = aiWorkerUrl || '';
+  renderCloudStatus();
+  const catList = getCategories();
+  $('categoryList').innerHTML = catList.map(c => '<option value="' + esc(c) + '">').join('');
+
+  $('typeList').innerHTML = state.customTypes.length ? state.customTypes.map((t, i) =>
+    '<span class="inline-flex items-center gap-2 bg-violet-50 dark:bg-violet-950 text-violet-800 dark:text-violet-300 rounded-xl px-3 py-2 text-sm font-black">' + esc(t) +
+    '<button type="button" data-action="del-type" data-idx="' + i + '" class="text-red-600">✕</button></span>'
+  ).join('') : '<div class="text-sm text-slate-400">Todavía no has añadido tipos personalizados.</div>';
+
+  $('exerciseList').innerHTML = state.customExercises.length ? state.customExercises.map((e, i) =>
+    '<div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-2 text-sm"><span><b>' + esc(e[0]) + '</b> · ' + esc(e[1]) + '</span>' +
+    '<button type="button" data-action="del-exercise" data-idx="' + i + '" class="text-red-600 font-black">✕</button></div>'
+  ).join('') : '<div class="text-sm text-slate-400">Todavía no has añadido ejercicios personalizados.</div>';
+
+  $('templateList').innerHTML = state.templates.length ? state.templates.map(t =>
+    '<div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-2 text-sm"><span><b>' + esc(t.name) + '</b> · ' + t.blocks.length + ' bloque(s) · ' + esc(t.createdAt) + '</span>' +
+    '<div class="flex gap-2"><button type="button" data-action="use-template" data-id="' + t.id + '" class="text-violet-700 dark:text-violet-400 font-black">Usar</button>' +
+    '<button type="button" data-action="del-template" data-id="' + t.id + '" class="text-red-600 font-black">✕</button></div></div>'
+  ).join('') : '<div class="text-sm text-slate-400">Todavía no has guardado ninguna plantilla.</div>';
+}
+
+function addCustomType(){
+  const name = $('newTypeName').value.trim().toUpperCase();
+  if (!name) return;
+  if (getTypes().includes(name)) { alert('Ese tipo ya existe.'); return; }
+  state.customTypes.push(name); save(); $('newTypeName').value = ''; renderSettings();
+}
+function deleteCustomType(idx){
+  if (!confirm('¿Eliminar este tipo personalizado? Los bloques ya guardados con este tipo no se modifican.')) return;
+  state.customTypes.splice(idx, 1); save(); renderSettings();
+}
+function addCustomExercise(){
+  const cat = ($('newExCategory').value || 'Personalizado').trim();
+  const name = $('newExName').value.trim();
+  if (!name) return;
+  if (getExercises().some(e => e[1].toLowerCase() === name.toLowerCase())) { alert('Ese ejercicio ya existe.'); return; }
+  state.customExercises.push([cat, name]); save(); $('newExCategory').value = ''; $('newExName').value = '';
+  renderSettings(); populateHistorySelectors();
+}
+function deleteCustomExercise(idx){
+  if (!confirm('¿Eliminar este ejercicio personalizado? Los registros ya guardados con él no se modifican.')) return;
+  state.customExercises.splice(idx, 1); save(); renderSettings(); populateHistorySelectors();
+}
+
+/* ==================== IA: IMPORTAR PIZARRA (BACKEND SEGURO) ==================== */
+function aiInstruction(){
+  return 'Analiza una foto de una pizarra de CrossFit y devuelve SOLO JSON válido. No inventes nada. Si un texto, número, ejercicio, carga, repeticiones, series, tiempo, tipo de bloque o nombre no se lee con suficiente certeza, usa tu mejor transcripción prudente solo si es útil y marca ese campo como true en _review; si no puedes inferirlo razonablemente, déjalo vacío y marca _review=true. Conserva exactamente el orden de los bloques y ejercicios. Tipos permitidos: ' + getTypes().join(', ') + '. Ejercicios preferidos: ' + getExercises().map(x => x[1]).join(', ') + '. Si el ejercicio leído no coincide exactamente pero la equivalencia es clara, usa el nombre de la lista; si no es clara, usa el texto leído en notes y deja exercise vacío/revisable. Un bloque puede tener varios ejercicios, inclúyelos todos como items. Esquema: {"name":"","notes":"","_review":{"name":false,"notes":false},"blocks":[{"type":"AMRAP","title":"","cut":"","finish":"","_review":{"type":false,"title":false,"cut":false,"finish":false},"items":[{"reps":"","sets":"","exercise":"","weight":"","notes":"","_review":{"reps":false,"sets":false,"exercise":false,"weight":false,"notes":false}}]}]}. No incluyas valoración, favorito, sensación ni resultados realizados por el atleta: esos campos son posteriores al entrenamiento.';
+}
+function normalizeAIWorkout(x){
+  const cleanReview = (r, fields) => Object.fromEntries(fields.map(f => [f, !!(r && r[f])]));
+  const allowed = new Set(getTypes()); const known = new Set(getExercises().map(e => e[1]));
+  return { name:String(x?.name||''), notes:String(x?.notes||''), _review:cleanReview(x?._review,['name','notes']),
+    blocks:Array.isArray(x?.blocks)?x.blocks.map(b=>{ const typeUp=String(b?.type||'').toUpperCase(); return blankBlock({ id:uid(), type:allowed.has(typeUp)?typeUp:'OTRO', title:String(b?.title||''), cut:String(b?.cut||''), finish:String(b?.finish||''), rating:'', fav:false,
+      _review:Object.assign(cleanReview(b?._review,['type','title','cut','finish']),{type:!allowed.has(typeUp)||!!b?._review?.type}),
+      items:Array.isArray(b?.items)&&b.items.length?b.items.map(it=>{ const exName=String(it?.exercise||''), exKnown=known.has(exName); return blankItem({ id:uid(), reps:String(it?.reps||''), sets:String(it?.sets||''), exercise:exKnown?exName:BASE_EXERCISES[0][1], weight:String(it?.weight||''), feel:'', notes:exKnown?String(it?.notes||''):[String(it?.notes||''),exName?('Ejercicio leído por IA: '+exName):''].filter(Boolean).join(' · '), _review:Object.assign(cleanReview(it?._review,['reps','sets','exercise','weight','notes']),{exercise:!exKnown||!!it?._review?.exercise}) }); }):[blankItem({_review:{exercise:true}})] }); }):[] };
+}
+function countAIReview(w){ let n=Object.values(w._review||{}).filter(Boolean).length; for(const b of w.blocks||[]){ n+=Object.values(b._review||{}).filter(Boolean).length; for(const i of b.items||[]) n+=Object.values(i._review||{}).filter(Boolean).length; } return n; }
+async function compressImageFile(file){
+  const dataUrl=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});
+  const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=dataUrl;});
+  const max=1600, scale=Math.min(1,max/Math.max(img.width,img.height));
+  const c=document.createElement('canvas'); c.width=Math.max(1,Math.round(img.width*scale)); c.height=Math.max(1,Math.round(img.height*scale));
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height); return c.toDataURL('image/jpeg',0.82);
+}
+async function prepareBoardPhoto(e){
+  const f=e.target.files&&e.target.files[0]; if(!f)return; if(!f.type.startsWith('image/')){alert('Selecciona una imagen.');return;}
+  $('aiStatus').innerHTML='<div class="text-sm text-slate-500">Preparando foto…</div>';
+  try{ aiPhotoDataUrl=await compressImageFile(f); $('aiPreview').src=aiPhotoDataUrl; $('aiPreviewWrap').classList.remove('hidden'); $('aiAnalyzeBtn').disabled=false; $('aiStatus').innerHTML='<div class="ai-ok">Foto optimizada y lista. Pulsa "Generar entreno".</div>'; }
+  catch(err){ console.error(err); $('aiStatus').innerHTML='<div class="ai-error">No se pudo preparar la foto.</div>'; }
+}
+async function analyzeBoardPhoto(){
+  if(!aiPhotoDataUrl){alert('Primero carga una foto.');return;}
+  if(!aiWorkerUrl){switchView('settings'); alert('Configura primero la URL de tu Cloudflare Worker en ⚙️ Datos.'); $('aiWorkerUrl').focus(); return;}
+  if(!supabaseClient || !cloudUser){switchView('settings'); alert('Para usar la IA segura debes iniciar sesión en Supabase.'); return;}
+  const btn=$('aiAnalyzeBtn'); btn.disabled=true; btn.textContent='⏳ Analizando…'; $('aiStatus').innerHTML='<div class="text-sm text-slate-500 dark:text-slate-400">La IA está leyendo la pizarra…</div>';
+  try{
+    const {data:{session}}=await supabaseClient.auth.getSession(); if(!session?.access_token) throw new Error('Sesión no válida');
+    const res=await fetch(aiWorkerUrl.replace(/\/$/,'')+'/analyze-board',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({imageDataUrl:aiPhotoDataUrl,instruction:aiInstruction()})});
+    const raw=await res.json().catch(()=>({})); if(!res.ok) throw new Error(raw.error||raw.message||('HTTP '+res.status));
+    const nw=normalizeAIWorkout(raw.workout||raw); if(!nw.blocks.length) throw new Error('La IA no devolvió bloques de entrenamiento');
+    const current=getDay(currentDate); if(current.blocks.length&&!confirm('Ya hay bloques en este día. ¿Quieres sustituirlos por lo leído de la pizarra?')) return;
+    state.workouts[currentDate]={name:nw.name,notes:nw.notes,blocks:nw.blocks,_review:nw._review}; save(); renderToday();
+    const pending=countAIReview(nw); $('aiStatus').innerHTML=pending?'<div class="ai-review-wrap rounded-2xl p-3 text-sm"><b>Entreno importado.</b> Hay '+pending+' campo(s) en amarillo para revisar.</div>':'<div class="ai-ok"><b>Entreno importado.</b> No se marcaron dudas, pero conviene comprobarlo.</div>';
+    window.scrollTo({top:$('blocks').offsetTop-20,behavior:'smooth'});
+  }catch(err){console.error(err);$('aiStatus').innerHTML='<div class="ai-error"><b>No se pudo analizar la foto.</b> '+esc(String(err.message||err))+'</div>';}
+  finally{btn.disabled=false;btn.textContent='✨ Generar entreno';}
+}
+
+/* ==================== EXPORTACIONES ==================== */
+function workoutRows(entries){
+  const rows = [['Fecha','Nombre','Bloque','Tipo','Ejercicio','Reps','Series','Peso / carga','Sensación','Corte','Final','Valoración','Favorito','Notas']];
+  entries.forEach(([d, w]) => w.blocks.forEach((b, n) => b.items.forEach(i =>
+    rows.push([d, w.name, n+1, b.type, i.exercise, i.reps||'', i.sets||'', i.weight||'', i.feel||'', b.cut||'', b.finish||'', b.rating||'', b.fav?'Sí':'No', i.notes||b.notes||w.notes||''])
+  )));
+  return rows;
+}
+function exportXlsx(entries, filename){
+  if (typeof XLSX === 'undefined') { alert('No se pudo cargar la librería de Excel (sin conexión a internet). Prueba de nuevo cuando tengas red.'); return; }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(workoutRows(entries)), 'Entrenamientos');
+  XLSX.writeFile(wb, filename);
+}
+function xlsxAll(){ exportXlsx(Object.entries(state.workouts).filter(([,w]) => w.blocks.length), 'CrossFit_Log.xlsx'); }
+function xlsxFiltered(){ exportXlsx(filteredWorkouts(), 'CrossFit_Log_Filtrado.xlsx'); }
+
+function pdfHTMLForEntries(entries, title){
+  const dayBlock = (d, w) => '<div class="day">' +
+    '<h1>🏋️ ' + esc(w.name || 'Entrenamiento') + '</h1>' +
+    '<div class="sub">' + prettyDate(d) + (state.profile.name ? ' · ' + esc(state.profile.name) : '') + '</div>' +
+    w.blocks.map((b, i) => '<div class="block"><h2>Bloque ' + (i+1) + ' · ' + esc(b.type) + (b.title ? ' · ' + esc(b.title) : '') + '</h2>' +
+      '<div class="meta">⏱️ Corte: ' + esc(b.cut||'—') + ' · 🏁 Final: ' + esc(b.finish||'—') + ' · ⭐ WOD: ' + esc(b.rating||'—') + '/10' + (b.fav ? ' · ⭐ Favorito' : '') + '</div>' +
+      '<table><thead><tr><th>Ejercicio</th><th>Reps</th><th>Series</th><th>Peso</th><th>Sensación</th><th>Notas</th></tr></thead><tbody>' +
+      b.items.map(x => '<tr><td>' + esc(x.exercise) + '</td><td>' + esc(x.reps||'') + '</td><td>' + esc(x.sets||'') + '</td><td>' + esc(x.weight||'') + '</td><td>' + esc(x.feel||'') + '</td><td>' + esc(x.notes||'') + '</td></tr>').join('') +
+      '</tbody></table></div>').join('') +
+    (w.notes ? '<div class="notes"><b>Notas generales:</b> ' + esc(w.notes) + '</div>' : '') +
+  '</div>';
+  return '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>' + esc(title) + '</title><style>' +
+    '@page{size:A4 landscape;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;margin:0;font-size:9px}' +
+    'h1{font-size:18px;margin:0 0 3px}h2{font-size:12px;margin:0 0 4px}.sub{color:#64748b;margin-bottom:8px}' +
+    '.day{page-break-after:always;margin-bottom:10px}.day:last-child{page-break-after:auto}' +
+    '.block{border:1px solid #cbd5e1;border-radius:7px;padding:7px;margin:0 0 7px;page-break-inside:avoid}' +
+    '.meta{font-size:8px;color:#475569;margin-bottom:5px}table{width:100%;border-collapse:collapse}' +
+    'th,td{border:1px solid #cbd5e1;padding:3px;text-align:left}th{background:#f1f5f9}.notes{font-size:8px;color:#475569;margin-top:4px}' +
+    '</style></head><body>' + entries.map(([d,w]) => dayBlock(d,w)).join('') + '</body></html>';
+}
+function openPrintWindow(html){
+  const win = window.open('', '_blank', 'width=1200,height=800');
+  if (!win) { alert('El navegador ha bloqueado la ventana de impresión. Permite ventanas emergentes para esta aplicación.'); return; }
+  win.document.open(); win.document.write(html); win.document.close();
+  setTimeout(() => { win.focus(); win.print(); }, 600);
+}
+function pdfCurrentDay(){ openPrintWindow(pdfHTMLForEntries([[currentDate, getDay(currentDate)]], 'CrossFit Log - ' + (getDay(currentDate).name || 'Entrenamiento'))); }
+function pdfFiltered(){
+  const entries = filteredWorkouts();
+  if (!entries.length) { alert('No hay resultados con los filtros actuales.'); return; }
+  openPrintWindow(pdfHTMLForEntries(entries.slice().sort((a,b) => a[0].localeCompare(b[0])), 'CrossFit Log - Selección'));
+}
+function backupJSON(){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
+  a.download = 'CrossFit_Log_Backup.json'; a.click();
+}
+function restoreJSON(e){
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const x = JSON.parse(r.result);
+      if (x && x.workouts) { state = normalizeState(x); save(); populateHistorySelectors(); renderToday(); alert('Copia restaurada.'); }
+      else if (x && x.w) { state = migrateLegacy(x); save(); populateHistorySelectors(); renderToday(); alert('Copia (formato antiguo) restaurada.'); }
+      else throw new Error('formato no reconocido');
+    } catch (err) { alert('Copia no válida: ' + err.message); }
+  };
+  r.readAsText(file);
+}
+
+/* ==================== TEMA ==================== */
+function applyTheme(theme){
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  $('themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+function toggleTheme(){
+  const next = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+  try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+  applyTheme(next);
+}
+
+/* ==================== MANIFEST DINÁMICO (instalar como app) ==================== */
+function setupManifest(){
+  try {
+    const iconSvg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f172a'/><text x='50' y='66' font-size='54' text-anchor='middle'>🏋️</text></svg>";
+    const iconUrl = 'data:image/svg+xml,' + encodeURIComponent(iconSvg);
+    const manifest = { name: 'CrossFit Log', short_name: 'CF Log', start_url: '.', display: 'standalone', background_color: '#0f172a', theme_color: '#0f172a', icons: [{ src: iconUrl, sizes: 'any', type: 'image/svg+xml', purpose: 'any' }] };
+    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+    const link = document.createElement('link'); link.rel = 'manifest'; link.href = URL.createObjectURL(blob);
+    document.head.appendChild(link);
+  } catch (e) { console.error('No se pudo generar el manifest.', e); }
+}
+
+/* ==================== EVENTOS ==================== */
+function wireEvents(){
+  document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchView(b.dataset.tab)));
+  $('themeToggle').addEventListener('click', toggleTheme);
+
+  $('date').addEventListener('change', e => setDate(e.target.value));
+  $('dayPrev').addEventListener('click', () => changeDate(-1));
+  $('dayNext').addEventListener('click', () => changeDate(1));
+  $('wodName').addEventListener('change', updateMeta);
+  $('wodNotes').addEventListener('change', updateMeta);
+  $('btnAddBlock').addEventListener('click', addBlock);
+  $('btnFinish').addEventListener('click', finishWorkout);
+  $('btnDuplicatePrev').addEventListener('click', duplicatePreviousDay);
+  $('btnUseTemplate').addEventListener('click', promptUseTemplate);
+
+  $('boardPhoto').addEventListener('change', prepareBoardPhoto);
+  $('aiAnalyzeBtn').addEventListener('click', analyzeBoardPhoto);
+
+  $('blocks').addEventListener('click', e => {
+    const t = e.target.closest('[data-action]'); if (!t) return;
+    const action = t.dataset.action, blockId = t.dataset.block, itemId = t.dataset.item;
+    if (action === 'set-type') { updateBlockField(blockId, 'type', t.dataset.type); renderToday(); }
+    else if (action === 'del-block') delBlock(blockId);
+    else if (action === 'del-item') delItem(blockId, itemId);
+    else if (action === 'add-item') addItem(blockId);
+    else if (action === 'save-block-template') saveBlockAsTemplate(blockId);
+  });
+  $('blocks').addEventListener('change', e => {
+    const t = e.target.closest('[data-action]'); if (!t) return;
+    const blockId = t.dataset.block, itemId = t.dataset.item, field = t.dataset.field;
+    const val = t.type === 'checkbox' ? t.checked : t.value;
+    if (t.dataset.action === 'block-field') { updateBlockField(blockId, field, val); if (field === 'fav') return; }
+    else if (t.dataset.action === 'item-field') { updateItemField(blockId, itemId, field, val); if (field === 'exercise') renderToday(); }
+  });
+
+  ['hQuery','hFrom','hTo','hExercise','hType','hRating'].forEach(id => $(id).addEventListener('input', renderHistory));
+  $('hFavOnly').addEventListener('change', renderHistory);
+  $('btnExportFilteredXlsx').addEventListener('click', xlsxFiltered);
+  $('btnExportFilteredPdf').addEventListener('click', pdfFiltered);
+  $('results').addEventListener('click', e => {
+    const t = e.target.closest('[data-action]'); if (!t) return;
+    if (t.dataset.action === 'open-day') openDay(t.dataset.date);
+    else if (t.dataset.action === 'del-day') deleteDay(t.dataset.date);
+  });
+
+  $('evoExercise').addEventListener('change', renderEvolution);
+  $('wodSelect').addEventListener('change', e => renderWodTable(e.target.value));
+
+  $('profileName').addEventListener('change', e => { state.profile.name = e.target.value; save(); $('user').textContent = state.profile.name ? '👤 ' + state.profile.name : ''; });
+  $('btnAddType').addEventListener('click', addCustomType);
+  $('btnAddExercise').addEventListener('click', addCustomExercise);
+  $('btnSaveDayTemplate').addEventListener('click', saveDayAsTemplate);
+  $('typeList').addEventListener('click', e => { const t = e.target.closest('[data-action="del-type"]'); if (t) deleteCustomType(+t.dataset.idx); });
+  $('exerciseList').addEventListener('click', e => { const t = e.target.closest('[data-action="del-exercise"]'); if (t) deleteCustomExercise(+t.dataset.idx); });
+  $('templateList').addEventListener('click', e => {
+    const t = e.target.closest('[data-action]'); if (!t) return;
+    if (t.dataset.action === 'use-template') applyTemplate(t.dataset.id);
+    else if (t.dataset.action === 'del-template') deleteTemplate(t.dataset.id);
+  });
+
+  $('btnSaveCloud').addEventListener('click', saveCloudSettings);
+  $('btnSignUp').addEventListener('click', signUp);
+  $('btnSignIn').addEventListener('click', signIn);
+  $('btnSignOut').addEventListener('click', signOut);
+  $('btnSyncNow').addEventListener('click', () => syncFromCloud({initial:false}));
+  $('btnUploadLocal').addEventListener('click', () => uploadLocalToCloud(false));
+  $('btnSaveWorker').addEventListener('click', saveWorkerUrl);
+
+  $('btnXlsx').addEventListener('click', xlsxAll);
+  $('btnPdf').addEventListener('click', pdfCurrentDay);
+  $('btnBackup').addEventListener('click', backupJSON);
+  $('restoreInput').addEventListener('change', restoreJSON);
+}
+
+/* ==================== INICIO ==================== */
+function init(){
+  state = loadState();
+  loadCloudSettings();
+  initSupabaseClient();
+  try { applyTheme(localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'); } catch (e) { applyTheme('light'); }
+  $('supabaseUrl').value = cloudSettings.url || '';
+  $('supabaseAnonKey').value = cloudSettings.anonKey || '';
+  $('aiWorkerUrl').value = aiWorkerUrl || '';
+  $('user').textContent = state.profile.name ? '👤 ' + state.profile.name : '';
+  populateHistorySelectors();
+  wireEvents();
+  renderToday();
+  restoreSession();
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('./sw.js').catch(e => console.warn('Service worker no disponible', e));
+  }
+}
+init();
+</script>
+</body>
+</html>
